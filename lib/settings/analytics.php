@@ -128,31 +128,35 @@ class Analytics {
 			    legend: {
 			        enabled: true
 			    },
+			    <?php 
+			    $pointInterval = 24 * 3600 * 1000;
+			    $pointStart    = strtotime($startDay) * 1000;
+			    ?>
 			    series: [{
 			        name: "<?php echo addslashes($top_episode_data[0]['title']) ?>",
-			        pointInterval: 24 * 3600 * 1000,
-			        pointStart: Date.UTC(2014, 04, 07),
+			        pointInterval: <?php echo $pointInterval ?>,
+			        pointStart: <?php echo $pointStart ?>,
 			        data: [
 			            <?php echo implode(",", $top_episode_data[0]['days']) ?>
 			        ]
 			    },{
 			        name: "<?php echo addslashes($top_episode_data[1]['title']) ?>",
-			        pointInterval: 24 * 3600 * 1000,
-			        pointStart: Date.UTC(2014, 04, 07),
+			        pointInterval: <?php echo $pointInterval ?>,
+			        pointStart: <?php echo $pointStart ?>,
 			        data: [
 			            <?php echo implode(",", $top_episode_data[1]['days']) ?>
 			        ]
 			    },{
 			        name: "<?php echo addslashes($top_episode_data[2]['title']) ?>",
-			        pointInterval: 24 * 3600 * 1000,
-			        pointStart: Date.UTC(2014, 04, 07),
+			        pointInterval: <?php echo $pointInterval ?>,
+			        pointStart: <?php echo $pointStart ?>,
 			        data: [
 			            <?php echo implode(",", $top_episode_data[2]['days']) ?>
 			        ]
 			    },{
 			        name: "<?php echo addslashes($other_episode_data['title']) ?>",
-			        pointInterval: 24 * 3600 * 1000,
-			        pointStart: Date.UTC(2014, 04, 07),
+			        pointInterval: <?php echo $pointInterval ?>,
+			        pointStart: <?php echo $pointStart ?>,
 			        data: [
 			            <?php echo implode(",", $other_episode_data['days']) ?>
 			        ]
