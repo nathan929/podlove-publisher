@@ -19,20 +19,44 @@ class Downloads_List_Table extends \Podlove\List_Table {
 	}
 
 	public function column_downloads( $episode ) {
-		return $episode['downloads'];
+		return $episode['downloads'] ? $episode['downloads'] : "–";
+	}
+
+	public function column_downloadsMonth( $episode ) {
+		return $episode['downloadsMonth'] ? $episode['downloadsMonth'] : "–";
+	}
+
+	public function column_downloadsWeek( $episode ) {
+		return $episode['downloadsWeek'] ? $episode['downloadsWeek'] : "–";
+	}
+
+	public function column_downloadsYesterday( $episode ) {
+		return $episode['downloadsYesterday'] ? $episode['downloadsYesterday'] : "–";
+	}
+
+	public function column_downloadsToday( $episode ) {
+		return $episode['downloadsToday'] ? $episode['downloadsToday'] : "–";
 	}
 
 	public function get_columns(){
 		return array(
-			'episode'   => __( 'Episode', 'podlove' ),
-			'downloads' => __( 'Total Downloads', 'podlove' ),
+			'episode'            => __( 'Episode', 'podlove' ),
+			'downloads'          => __( 'Total Downloads', 'podlove' ),
+			'downloadsMonth'     => __( '30 Days', 'podlove' ),
+			'downloadsWeek'      => __( '7 Days', 'podlove' ),
+			'downloadsYesterday' => __( 'Yesterday', 'podlove' ),
+			'downloadsToday'     => __( 'Today', 'podlove' ),
 		);
 	}
 
 	public function get_sortable_columns() {
 		return array(
-			'episode'   => array('episode', true),
-			'downloads' => array('downloads', true)
+			'episode'            => array('episode', true),
+			'downloads'          => array('downloads', true),
+			'downloadsMonth'     => array('downloadsMonth', true),
+			'downloadsWeek'      => array('downloadsWeek', true),
+			'downloadsYesterday' => array('downloadsYesterday', true),
+			'downloadsToday'     => array('downloadsToday', true),
 		);
 	}	
 
@@ -49,8 +73,12 @@ class Downloads_List_Table extends \Podlove\List_Table {
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 
 		$orderby_map = array(
-			'episode'   => 'p.post_date',
-			'downloads' => 'downloads'
+			'episode'            => 'p.post_date',
+			'downloads'          => 'downloads',
+			'downloadsMonth'     => 'downloadsMonth',
+			'downloadsWeek'      => 'downloadsWeek',
+			'downloadsYesterday' => 'downloadsYesterday',
+			'downloadsToday'     => 'downloadsToday'
 		);
 
 		// look for order options
@@ -68,9 +96,39 @@ class Downloads_List_Table extends \Podlove\List_Table {
 		}
 		
 		// retrieve data
+		$subSQL = function($start = null, $end = null) {
+
+			$strToMysqlDate = function($s) { return date('Y-m-d', strtotime($s)); };
+
+			if ($start && $end) {
+				$timerange = " AND di2.accessed_at BETWEEN '{$strToMysqlDate($start)}' AND '{$strToMysqlDate($end)}'";
+			} elseif ($start) {
+				$timerange = " AND DATE(di2.accessed_at) = '{$strToMysqlDate($start)}'";
+			} else {
+				$timerange = "";
+			}
+
+			return "
+				SELECT
+					COUNT(di2.id) downloads
+				FROM
+					" . Model\MediaFile::table_name() . " mf2
+					LEFT JOIN " . Model\DownloadIntent::table_name() . " di2 ON di2.media_file_id = mf2.id
+				WHERE
+					mf2.episode_id = e.id
+					$timerange
+			";
+		};
+
 		$sql = "
 			SELECT
-				e.id, p.post_title title, COUNT(di.id) downloads
+				e.id,
+				p.post_title title,
+				COUNT(di.id) downloads,
+				(" . $subSQL('30 days ago', 'now') . ") downloadsMonth,
+				(" . $subSQL('7 days ago', 'now') . ") downloadsWeek,
+				(" . $subSQL('1 day ago') . ") downloadsYesterday,
+				(" . $subSQL('now') . ") downloadsToday
 			FROM
 				" . Model\Episode::table_name() . " e
 				JOIN " . $wpdb->posts . " p ON e.post_id = p.ID
