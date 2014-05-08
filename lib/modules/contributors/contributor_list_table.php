@@ -191,7 +191,7 @@ class Contributor_List_Table extends \Podlove\List_Table {
 
 		// look how to sort
 		if( isset($_GET['order'])  ) {
-			$order = $_GET['order'];
+			$order = strtoupper($_GET['order']) == 'ASC' ? 'ASC' : 'DESC';
 		} else{
 			$order = 'DESC';
 		}

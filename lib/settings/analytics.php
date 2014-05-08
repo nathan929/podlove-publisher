@@ -96,6 +96,12 @@ class Analytics {
 
 			<div id="total_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
+			<?php
+			$table = new \Podlove\Downloads_List_Table();
+			$table->prepare_items();
+			$table->display();
+			?>
+
 		</div>
 
 		<script type="text/javascript">
