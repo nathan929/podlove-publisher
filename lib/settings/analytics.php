@@ -109,7 +109,7 @@ class Analytics {
 		
 			$('#total_chart').highcharts({
 			    chart: {
-			        type: "area"
+			        type: "column"
 			    },
 			    title: {
 			        text: 'Downloads: 30 days'
@@ -127,7 +127,7 @@ class Analytics {
 			        }
 			    },
 			    plotOptions: {
-			    	area: {
+			    	column: {
 			    		stacking: "normal"
 			    	}
 			    },
