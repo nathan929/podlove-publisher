@@ -42,7 +42,7 @@ class Downloads_List_Table extends \Podlove\List_Table {
 		return array(
 			'episode'            => __( 'Episode', 'podlove' ),
 			'downloads'          => __( 'Total Downloads', 'podlove' ),
-			'downloadsMonth'     => __( '30 Days', 'podlove' ),
+			'downloadsMonth'     => __( '28 Days', 'podlove' ),
 			'downloadsWeek'      => __( '7 Days', 'podlove' ),
 			'downloadsYesterday' => __( 'Yesterday', 'podlove' ),
 			'downloadsToday'     => __( 'Today', 'podlove' ),
@@ -125,7 +125,7 @@ class Downloads_List_Table extends \Podlove\List_Table {
 				e.id,
 				p.post_title title,
 				COUNT(di.id) downloads,
-				(" . $subSQL('30 days ago', 'now') . ") downloadsMonth,
+				(" . $subSQL('28 days ago', 'now') . ") downloadsMonth,
 				(" . $subSQL('7 days ago', 'now') . ") downloadsWeek,
 				(" . $subSQL('1 day ago') . ") downloadsYesterday,
 				(" . $subSQL('now') . ") downloadsToday

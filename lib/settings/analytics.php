@@ -35,7 +35,7 @@ class Analytics {
 
 	public function page() {
 
-		$days = 30;
+		$days = 28;
 
 		$start = "$days days ago";
 		$end   = "now";
@@ -112,7 +112,7 @@ class Analytics {
 			        type: "column"
 			    },
 			    title: {
-			        text: 'Downloads: 30 days'
+			        text: 'Downloads: 28 days'
 			    },
 			    subtitle: {
 			        text: 'Top 3 episodes compared to the rest'
