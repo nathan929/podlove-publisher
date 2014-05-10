@@ -15,7 +15,12 @@ class Downloads_List_Table extends \Podlove\List_Table {
 	}
 
 	public function column_episode( $episode ) {
-		return $episode['title'];
+		return sprintf(
+			"<a href=\"?page=%s&action=show&episode=%d\">%s</a>",
+			$_REQUEST['page'],
+			$episode['id'],
+			$episode['title']
+		);
 	}
 
 	public function column_downloads( $episode ) {

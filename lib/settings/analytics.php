@@ -35,6 +35,98 @@ class Analytics {
 
 	public function page() {
 
+		?>
+		<div class="wrap">
+			<?php
+			$action = ( isset( $_REQUEST['action'] ) ) ? $_REQUEST['action'] : NULL;
+			switch ( $action ) {
+				case 'show':
+					$this->show_template();
+					break;
+				case 'index':
+				default:
+					$this->view_template();
+					break;
+			}
+			?>
+		</div>	
+		<?php
+	}
+
+	public function show_template() {
+		$episode = Model\Episode::find_one_by_id((int) $_REQUEST['episode']);
+		$post    = get_post( $episode->post_id );
+
+		$days = 28;
+
+		$start = "$days days ago";
+		$end   = "now";
+
+		$startDay = date('Y-m-d', strtotime($start));
+		$endDay   = date('Y-m-d', strtotime($end));
+
+		$chartData = array(
+			'days'  => Model\DownloadIntent::daily_episode_totals($episode->id, $start, $end),
+			'title' => $post->post_title
+		);
+
+		?>
+		<h2>
+			<?php echo sprintf(
+				__("Analytics: %s", "podlove"),
+				$post->post_title
+			);
+			?>
+		</h2>
+
+		<div id="total_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+
+		<script type="text/javascript">
+		(function ($) {
+		
+			$('#total_chart').highcharts({
+			    chart: {
+			        type: "column"
+			    },
+			    title: {
+			        text: 'Downloads: 28 days'
+			    },
+			    subtitle: {
+			        text: "<?php echo addslashes($chartData['title']) ?>",
+			    },
+			    xAxis: {
+			        type: 'datetime',
+			        //minRange: 14 * 24 * 3600000 // fourteen days
+			    },
+			    yAxis: {
+			        title: {
+			            text: 'Downloads'
+			        }
+			    },
+			    legend: {
+			        enabled: false
+			    },
+			    <?php 
+			    $pointInterval = 24 * 3600 * 1000;
+			    $pointStart    = strtotime($startDay) * 1000;
+			    ?>
+			    series: [{
+			        name: "<?php echo addslashes($chartData['title']) ?>",
+			        pointInterval: <?php echo $pointInterval ?>,
+			        pointStart: <?php echo $pointStart ?>,
+			        data: [
+			            <?php echo implode(",", $chartData['days']) ?>
+			        ]
+			    }]
+			});
+
+		})(jQuery);
+		</script>
+
+		<?php
+	}
+
+	public function view_template() {
 		$days = 28;
 
 		$start = "$days days ago";
@@ -45,64 +137,33 @@ class Analytics {
 
 		$top_episode_ids = Model\DownloadIntent::top_episode_ids($start, $end);
 
-		$days_data_from_query_result = function($totals) use ($start, $endDay) {
-			
-			$dayTotals = array();
-			foreach ($totals as $download) {
-				$dayTotals[$download->theday] = $download->downloads;
-			}
-
-			$days = array();
-			$day = 0;
-
-			do {
-				$currentDay = date('Y-m-d', strtotime($start . " +$day days"));
-
-				if (isset($dayTotals[$currentDay])) {
-					$days[$currentDay] = $dayTotals[$currentDay];
-				} else {
-					$days[$currentDay] = 0;	
-				}
-
-				$day++;
-			} while ($currentDay < $endDay);
-
-			return $days;
-		};
-
 		$top_episode_data = array();
 		foreach ($top_episode_ids as $episode_id) {
-			$totals = Model\DownloadIntent::daily_episode_totals($episode_id, $start, $end);
-
 			$episode = Model\Episode::find_one_by_id($episode_id);
 			$post = get_post($episode->post_id);
 
 			$top_episode_data[] = array(
-				'days'  => $days_data_from_query_result($totals),
+				'days'  => Model\DownloadIntent::daily_episode_totals($episode_id, $start, $end),
 				'title' => $post->post_title
 			);
 		}
 
-		$other_totals = Model\DownloadIntent::daily_totals($start, $end, $top_episode_ids);
 		$other_episode_data = array(
-			'days'  => $days_data_from_query_result($other_totals),
+			'days'  => Model\DownloadIntent::daily_totals($start, $end, $top_episode_ids),
 			'title' => "Other"
 		);
 
 		?>
 
-		<div class="wrap">
-			<h2><?php echo __("Podcast Analytics", "podlove"); ?></h2>
+		<h2><?php echo __("Podcast Analytics", "podlove"); ?></h2>
 
-			<div id="total_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+		<div id="total_chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
-			<?php
-			$table = new \Podlove\Downloads_List_Table();
-			$table->prepare_items();
-			$table->display();
-			?>
-
-		</div>
+		<?php
+		$table = new \Podlove\Downloads_List_Table();
+		$table->prepare_items();
+		$table->display();
+		?>
 
 		<script type="text/javascript">
 		(function ($) {

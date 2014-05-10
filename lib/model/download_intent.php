@@ -52,9 +52,11 @@ class DownloadIntent extends Base {
 				theday
 		";
 
-		return $wpdb->get_results(
+		$result = $wpdb->get_results(
 			$wpdb->prepare($sql, $episode_id, $dateStart, $dateEnd)
 		);
+
+		return self::days_data_from_query_result($result, $start, $end);;
 	}
 
 	public static function daily_totals($start, $end = "now", $exclude_episode_ids = array()) {
@@ -88,9 +90,11 @@ class DownloadIntent extends Base {
 				theday
 		";
 
-		return $wpdb->get_results(
+		$result = $wpdb->get_results(
 			$wpdb->prepare($sql, $dateStart, $dateEnd)
 		);
+
+		return self::days_data_from_query_result($result, $start, $end);
 	}
 
 	public static function total_by_episode_id($episode_id) {
@@ -110,6 +114,35 @@ class DownloadIntent extends Base {
 		return $wpdb->get_var(
 			$wpdb->prepare($sql, $episode_id)
 		);
+	}
+
+	private static function days_data_from_query_result($totals, $start, $end) {
+
+		$endDay = date("Y-m-d", strtotime($end));
+			
+		// use theday (date) as array key
+		$dayTotals = array();
+		foreach ($totals as $download) {
+			$dayTotals[$download->theday] = $download->downloads;
+		}
+
+		// create 0-entries for days without downloads
+		$days = array();
+		$day = 0;
+
+		do {
+			$currentDay = date('Y-m-d', strtotime($start . " +$day days"));
+
+			if (isset($dayTotals[$currentDay])) {
+				$days[$currentDay] = $dayTotals[$currentDay];
+			} else {
+				$days[$currentDay] = 0;	
+			}
+
+			$day++;
+		} while ($currentDay < $endDay);
+
+		return $days;
 	}
 
 }
