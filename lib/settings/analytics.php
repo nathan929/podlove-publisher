@@ -123,6 +123,67 @@ class Analytics {
 		})(jQuery);
 		</script>
 
+		<?php 
+		$releaseDate = new \DateTime($post->post_date);
+		$diff        = $releaseDate->diff(new \DateTime());
+		$daysSinceRelease = $diff->days;
+
+		$downloads = array(
+			'total'     => Model\DownloadIntent::total_by_episode_id($episode->id, "1000 years ago", "now"),
+			'month'     => Model\DownloadIntent::total_by_episode_id($episode->id, "28 days ago", "now"),
+			'week'      => Model\DownloadIntent::total_by_episode_id($episode->id, "7 days ago", "now"),
+			'yesterday' => Model\DownloadIntent::total_by_episode_id($episode->id, "1 day ago"),
+			'today'     => Model\DownloadIntent::total_by_episode_id($episode->id, "now")
+		);
+
+		$peak = Model\DownloadIntent::peak_download_by_episode_id($episode->id);
+		?>
+
+		<table>
+			<tbody>
+				<tr>
+					<td>Total Downloads</td>
+					<td><?php echo $downloads['total'] ?></td>
+				</tr>
+				<tr>
+					<td>28 Days</td>
+					<td><?php echo $downloads['month'] ?></td>
+				</tr>
+				<tr>
+					<td>7 Days</td>
+					<td><?php echo $downloads['week'] ?></td>
+				</tr>
+				<tr>
+					<td>Yesterday</td>
+					<td><?php echo $downloads['yesterday'] ?></td>
+				</tr>
+				<tr>
+					<td>Today</td>
+					<td><?php echo $downloads['today'] ?></td>
+				</tr>
+				<tr>
+					<td>Release Date</td>
+					<td><?php echo mysql2date(get_option('date_format'), $post->post_date) ?></td>
+				</tr>
+				<tr>
+					<td>Peak Downloads/Day</td>
+					<td><?php echo sprintf(
+						"%d (%s)",
+						$peak['downloads'],
+						mysql2date(get_option('date_format'), $peak['theday'])
+					) ?></td>
+				</tr>
+				<tr>
+					<td>Average Downloads/Day</td>
+					<td><?php echo $daysSinceRelease ? round($downloads['total'] / $daysSinceRelease, 1) : '—' ?></td>
+				</tr>
+				<tr>
+					<td>Days since Release</td>
+					<td><?php echo $daysSinceRelease ?></td>
+				</tr>
+			</tbody>
+		</table>
+
 		<?php
 	}
 
