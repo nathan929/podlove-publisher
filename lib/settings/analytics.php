@@ -29,8 +29,11 @@ class Analytics {
 		if ( $_REQUEST['page'] != 'podlove_analytics' )
 			return;
 
-		wp_register_script('podlove-highcharts-js', \Podlove\PLUGIN_URL . '/js/highcharts.js', array('jquery'));
-		wp_enqueue_script('podlove-highcharts-js');
+		// wp_register_script('podlove-highcharts-js', \Podlove\PLUGIN_URL . '/js/highcharts.js', array('jquery'));
+		// wp_enqueue_script('podlove-highcharts-js');
+
+		wp_register_script('podlove-highstock-js', \Podlove\PLUGIN_URL . '/js/highstock.js', array('jquery'));
+		wp_enqueue_script('podlove-highstock-js');
 	}
 
 	public function page() {
@@ -66,9 +69,17 @@ class Analytics {
 		$endDay   = date('Y-m-d', strtotime($end));
 
 		$chartData = array(
-			'days'  => Model\DownloadIntent::daily_episode_totals($episode->id, $start, $end),
+			'days'  => Model\DownloadIntent::daily_episode_totals($episode->id, $post->post_date, "now"),
 			'title' => $post->post_title
 		);
+
+		$releaseTime = strtotime($post->post_date);
+		// $top_episode_ids = Model\DownloadIntent::top_episode_ids("1000 days ago", "now", 1);
+		// $top_episode_id  = $top_episode_ids[0];
+
+		// $topEpisodeData = array(
+		// 	'days' => Model\DownloadIntent::daily_episode_totals($top_episode_id, $start, $end),
+		// );
 
 		?>
 		<h2>
@@ -84,6 +95,54 @@ class Analytics {
 		<script type="text/javascript">
 		(function ($) {
 		
+			$('#total_chart').highcharts('StockChart', {
+				
+				navigator: {
+					enabled: true,
+					series: {
+						type: 'column',
+						color: '#95CEFF',
+						fillOpacity: 0.05
+					}
+				},
+				
+				rangeSelector: {
+					selected: 1
+				},
+
+				yAxis: {
+					title: { text: "Downloads" },
+				},
+
+				xAxis: {
+					title: { text: "Days since Release" },
+					labels: {
+						formatter: function() {
+							// days since release
+							return Math.floor((this.value - <?php echo $releaseTime*1000 ?>) / 86400000);
+						}
+					}
+				},
+				
+				series: [{
+					// dataGrouping: {
+					// 	forced: true,
+					// 	approximation: "sum",
+					// 	units: [['week', [1]]]
+					// },
+					type: 'column',
+				    name: 'Downloads',
+				    data: [<?php
+				    	echo implode(',', array_map(function($item) {
+							list($y, $m, $d) = explode("-", $item['theday']);
+							return "[Date.UTC($y," . ($m-1) . ",$d)," . ((int) $item['downloads']) . "]";
+						}, $chartData['days']));
+						?>]
+				}]
+
+			});
+
+			/**
 			$('#total_chart').highcharts({
 			    chart: {
 			        type: "column"
@@ -95,8 +154,10 @@ class Analytics {
 			        text: "<?php echo addslashes($chartData['title']) ?>",
 			    },
 			    xAxis: {
-			        type: 'datetime',
-			        //minRange: 14 * 24 * 3600000 // fourteen days
+			        // type: 'datetime',
+			        title: {
+			        	text: 'Days since Release'
+			        }
 			    },
 			    yAxis: {
 			        title: {
@@ -106,20 +167,27 @@ class Analytics {
 			    legend: {
 			        enabled: false
 			    },
+			    navigator: {
+			    	enabled: true
+			    },
+			    rangeSelector: {
+			    	selected: 1
+			    },
 			    <?php 
 			    $pointInterval = 24 * 3600 * 1000;
 			    $pointStart    = strtotime($startDay) * 1000;
 			    ?>
 			    series: [{
 			        name: "<?php echo addslashes($chartData['title']) ?>",
-			        pointInterval: <?php echo $pointInterval ?>,
-			        pointStart: <?php echo $pointStart ?>,
+			        // pointInterval: <?php echo $pointInterval ?>,
+			        // pointStart: <?php echo $pointStart ?>,
 			        data: [
-			            <?php echo implode(",", $chartData['days']) ?>
+			            <?php // echo implode(",", $chartData['days']) ?>
 			        ]
 			    }]
 			});
-
+			**/
+	
 		})(jQuery);
 		</script>
 
@@ -196,7 +264,7 @@ class Analytics {
 		$startDay = date('Y-m-d', strtotime($start));
 		$endDay   = date('Y-m-d', strtotime($end));
 
-		$top_episode_ids = Model\DownloadIntent::top_episode_ids($start, $end);
+		$top_episode_ids = Model\DownloadIntent::top_episode_ids($start, $end, 3);
 
 		$top_episode_data = array();
 		foreach ($top_episode_ids as $episode_id) {

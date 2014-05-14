@@ -3,7 +3,7 @@ namespace Podlove\Model;
 
 class DownloadIntent extends Base {
 
-	public static function top_episode_ids($start, $end = "now") {
+	public static function top_episode_ids($start, $end = "now", $limit = 3) {
 		global $wpdb;
 
 		$sql = "
@@ -19,11 +19,11 @@ class DownloadIntent extends Base {
 			ORDER BY
 				downloads DESC
 			LIMIT
-				0, 3
+				0, %d
 		";
 
 		return $wpdb->get_col(
-			$wpdb->prepare($sql)
+			$wpdb->prepare($sql, $limit)
 		);
 	}
 
@@ -46,11 +46,12 @@ class DownloadIntent extends Base {
 				theday
 		";
 
-		$result = $wpdb->get_results(
-			$wpdb->prepare($sql, $episode_id)
+		return $wpdb->get_results(
+			$wpdb->prepare($sql, $episode_id),
+			ARRAY_A
 		);
 
-		return self::days_data_from_query_result($result, $start, $end);;
+		// return self::days_data_from_query_result($result, $start, $end);;
 	}
 
 	public static function daily_totals($start, $end = "now", $exclude_episode_ids = array()) {
