@@ -40,9 +40,11 @@
 namespace Podlove;
 use \Podlove\Model;
 
-define( __NAMESPACE__ . '\DATABASE_VERSION', 70 );
+define( __NAMESPACE__ . '\DATABASE_VERSION', 76 );
 
-add_action( 'init', function () {
+add_action( 'init', '\Podlove\run_database_migrations' );
+
+function run_database_migrations() {
 	
 	$database_version = get_option( 'podlove_database_version' );
 
@@ -57,7 +59,7 @@ add_action( 'init', function () {
 		}
 	}
 
-} );
+}
 
 /**
  * Find and run migration for given version number.
@@ -783,6 +785,69 @@ function run_migrations_for_version( $version ) {
 				$service->type = strtolower($service->title);
 				$service->save();
 			}
+		break;
+		case 72:
+			if (\Podlove\Modules\Base::is_active('social')) {
+				$services = array(
+					array(
+						'title'       => 'Vimeo',
+						'type'        => 'vimeo',
+						'category'    => 'social',
+						'description' => 'Vimeo Account',
+						'logo'        => 'vimeo-128.png',
+						'url_scheme'  => 'http://vimeo.com/%account-placeholder%'
+					),
+					array(
+						'title' 		=> 'about.me',
+						'type'	 		=> 'about.me',
+						'category'		=> 'social',
+						'description'	=> 'about.me Account',
+						'logo'			=> 'aboutme-128.png',
+						'url_scheme'	=> 'http://about.me/%account-placeholder%'
+					),
+					array(
+						'title' 		=> 'Gittip',
+						'type'	 		=> 'gittip',
+						'category'		=> 'donation',
+						'description'	=> 'Gittip Account',
+						'logo'			=> 'gittip-128.png',
+						'url_scheme'	=> 'https://www.gittip.com/%account-placeholder%'
+					)
+				);
+
+				foreach ($services as $service_key => $service) {
+					$c = new \Podlove\Modules\Social\Model\Service;
+					$c->title = $service['title'];
+					$c->type = $service['type'];
+					$c->category = $service['category'];
+					$c->description = $service['description'];
+					$c->logo = $service['logo'];
+					$c->url_scheme = $service['url_scheme'];
+					$c->save();
+				}
+			}
+		break;
+		case 73:
+			if (\Podlove\Modules\Base::is_active('social')) {
+				$jabber_service = \Podlove\Modules\Social\Model\Service::find_one_by_where( "`type` = 'jabber' AND `category` = 'social'" );
+				if ($jabber_service) {
+					$jabber_service->url_scheme = 'jabber:%account-placeholder%';
+					$jabber_service->save();
+				}
+			}
+		break;
+		case 74:
+			Model\GeoArea::build();
+			Model\GeoAreaName::build();
+			\Podlove\Geo_Ip::register_updater_cron();
+		break;
+		case 75:
+			$tracking = get_option('podlove_tracking');
+			$tracking['mode'] = 0;
+			update_option('podlove_tracking', $tracking);
+		break;
+		case 76:
+			set_transient( 'podlove_needs_to_flush_rewrite_rules', true );
 		break;
 	}
 

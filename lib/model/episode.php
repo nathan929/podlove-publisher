@@ -25,7 +25,10 @@ class Episode extends Base implements Licensable {
 			foreach (self::property_names() as $property) {
 				$episode->$property = $row->$property;
 			}
-			$episodes[] = $episode;
+
+			if ($episode->is_valid()) {
+				$episodes[] = $episode;
+			}
 		}
 		
 		return $episodes;
@@ -126,9 +129,9 @@ class Episode extends Base implements Licensable {
 		return $episode;
 	}
 
-	public function enclosure_url( $episode_asset ) {
+	public function enclosure_url( $episode_asset, $source = "feed", $context = null ) {
 		$media_file = MediaFile::find_by_episode_id_and_episode_asset_id( $this->id, $episode_asset->id );
-		return $media_file->get_file_url();
+		return $media_file->get_public_file_url($source, $context);
 	}
 
 	public function get_cover_art_with_fallback() {

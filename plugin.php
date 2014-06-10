@@ -1,5 +1,6 @@
 <?php
 namespace Podlove;
+
 use Leth\IPAddress\IP, Leth\IPAddress\IPv4, Leth\IPAddress\IPv6;
 
 register_activation_hook(   PLUGIN_FILE, __NAMESPACE__ . '\activate' );
@@ -16,6 +17,8 @@ function activate_for_current_blog() {
 	Model\Template::build();
 	Model\DownloadIntent::build();
 	Model\UserAgent::build();
+	Model\GeoArea::build();
+	Model\GeoAreaName::build();
 
 	if ( ! Model\FileType::has_entries() ) {
 		$default_types = array(
@@ -180,6 +183,8 @@ function uninstall_for_current_blog() {
 	Model\Template::destroy();
 	Model\DownloadIntent::destroy();
 	Model\UserAgent::destroy();
+	Model\GeoArea::destroy();
+	Model\GeoAreaName::destroy();
 }
 
 /**
@@ -189,8 +194,12 @@ add_action( 'init', array( '\Podlove\Custom_Guid', 'init' ) );
 add_action( 'init', array( '\Podlove\Downloads', 'init' ) );
 add_action( 'init', array( '\Podlove\ExtendSearch', 'init' ) );
 add_action( 'init', array( '\Podlove\FeedDiscoverability', 'init' ) );
+add_action( 'init', array( '\Podlove\Geo_Ip', 'init' ) );
 
 add_action( 'init', function () {
+
+		// register post type
+		new Podcast_Post_Type();
 
 		if ( is_admin() )
 			return;
@@ -232,6 +241,31 @@ add_filter( 'pre_get_posts', function ( $wp_query ) {
 	}
 
 	return $wp_query;
+} );
+
+/**
+ * Checking "merge_episodes" also includes episodes in main feed
+ */
+add_filter( 'request', function($query_var) {
+
+	if ( !isset( $query_var['feed'] ) ) 
+		return $query_var;
+	
+	if ( \Podlove\get_setting( 'website', 'merge_episodes' ) !== 'on' )
+		return $query_var;
+	
+	$extend = array(
+		'post' => 'post',
+		'podcast' => 'podcast'
+	);
+
+	if ( empty( $query_var['post_type'] ) || ! is_array( $query_var['post_type'] ) ) {
+		$query_var['post_type'] = $extend;
+	} else {
+		$query_var['post_type'] = array_merge( $query_var['post_type'], $extend );
+	}
+	
+	return $query_var;
 } );
 
 // init modules
@@ -742,8 +776,30 @@ add_filter('pre_update_option_podlove_asset_assignment', function($new, $old) {
 }, 10, 2);
 
 function handle_media_file_download() {
-	
-	if ( ! isset( $_GET['download_media_file'] ) )
+
+	if (isset($_GET['download_media_file'])) {
+		$download_media_file = $_GET['download_media_file'];
+	} else {
+		$download_media_file = get_query_var("download_media_file");
+	}
+
+	if (isset($_REQUEST['ptm_source'])) {
+		$ptm_source = isset($_REQUEST['ptm_source']);
+	} else {
+		$ptm_source = get_query_var("ptm_source");
+	}
+
+	if (isset($_REQUEST['ptm_context'])) {
+		$ptm_context = isset($_REQUEST['ptm_context']);
+	} else {
+		$ptm_context = get_query_var("ptm_context");
+	}
+
+	$download_media_file = (int) $download_media_file;
+	$ptm_source  = trim($ptm_source);
+	$ptm_context = trim($ptm_context);
+
+	if (!$download_media_file)
 		return;
 
 	// tell WP Super Cache to not cache download links
@@ -752,8 +808,8 @@ function handle_media_file_download() {
 
 	// FIXME: this is a hack for bitlove => so move it in this module AND make sure the location in valid
 	// if download_media_file is a URL, download directly
-	if ( filter_var( $_GET['download_media_file'], FILTER_VALIDATE_URL ) ) {
-		$parsed_url = parse_url($_GET['download_media_file']);
+	if ( filter_var( $download_media_file, FILTER_VALIDATE_URL ) ) {
+		$parsed_url = parse_url($download_media_file);
 		$file_name = substr( $parsed_url['path'], strrpos( $parsed_url['path'], "/" ) + 1 );
 		header( "Expires: 0" );
 		header( 'Cache-Control: must-revalidate' );
@@ -765,11 +821,11 @@ function handle_media_file_download() {
 		ob_clean();
 		flush();
 		while ( @ob_end_flush() ); // flush and end all output buffers
-		readfile( $_GET['download_media_file'] );
+		readfile( $download_media_file );
 		exit;
 	}
 
-	$media_file_id = (int) $_GET['download_media_file'];
+	$media_file_id = $download_media_file;
 	$media_file    = Model\MediaFile::find_by_id( $media_file_id );
 
 	if ( ! $media_file ) {
@@ -785,53 +841,110 @@ function handle_media_file_download() {
 	}
 
 	// tracking
-	// TODO: in case some client does not respect the permanent redirect,
-	// maybe ignore intents by the same IP, with the same client, on the same day
-	// — or leave that as an exercise for the analytics
 	$intent = new Model\DownloadIntent;
 	$intent->media_file_id = $media_file_id;
 	$intent->accessed_at = date('Y-m-d H:i:s');
 	
-	if (isset($_REQUEST['ptm_source'])) {
-		$intent->source = trim($_REQUEST['ptm_source']);
+	if ($ptm_source)
+		$intent->source = $ptm_source;
+
+	if ($ptm_context)
+		$intent->context = $ptm_context;
+
+	// set user agent
+	$ua_string = $_SERVER['HTTP_USER_AGENT'];
+	if (!($agent = Model\UserAgent::find_one_by_user_agent($ua_string))) {
+		$agent = new Model\UserAgent;
+		$agent->user_agent = $ua_string;
+		$agent->save();
 	}
+	$intent->user_agent_id = $agent->id;
 
-	if (isset($_REQUEST['ptm_context'])) {
-		$intent->context = trim($_REQUEST['ptm_context']);
+	// get ip, but don't store it
+	$ip = IP\Address::factory($_SERVER['REMOTE_ADDR']);
+	if (method_exists($ip, 'as_IPv6_address')) {
+		$ip = $ip->as_IPv6_address();
 	}
+	$ip_string = $ip->format(IP\Address::FORMAT_COMPACT);
 
-	// respect do-not-track header
-	$dnt = isset($_SERVER['HTTP_DNT']) && $_SERVER['HTTP_DNT'];
-	if (apply_filters('podlove_track_user_data_in_download_intents', !$dnt)) {
-		// save ip address in ipv6 format
-		$ip = IP\Address::factory($_SERVER['REMOTE_ADDR']);
-
-		if (method_exists($ip, 'as_IPv6_address')) {
-			$ip = $ip->as_IPv6_address();
-		}
-
-		$intent->ip = $ip->format(IP\Address::FORMAT_COMPACT);
-
-		// set user agent
-		$ua_string = $_SERVER['HTTP_USER_AGENT'];
-		if (!($agent = Model\UserAgent::find_one_by_user_agent($ua_string))) {
-			$agent = new Model\UserAgent;
-			$agent->user_agent = $ua_string;
-			$agent->save();
-		}
-		$intent->user_agent_id = $agent->id;
-	}
+	// Generate a hash from IP address and UserAgent so we can identify
+	// identical requests without storing an IP address.
+	$intent->request_id = openssl_digest($ip_string . $ua_string, 'sha256');
+	$intent = $intent->add_geo_data($ip_string);
 
 	$intent->save();
 
-	// TODO: how does the web player deal with this? do browsers resolve 301s
-	// and it works perfectly out of the box? Should the player audio source tags
-	// contain the final/raw urls? If so, how do we track player engagement?
-	header("HTTP/1.1 301 Moved Permanently");
-	header("Location: " . $media_file->get_file_url($intent->source, $intent->context));
-	exit;
+	if ( \Podlove\get_setting('website', 'force_download') == 'on' && in_array( strtolower( ini_get( 'allow_url_fopen' ) ), array( "1", "on", "true" ) ) ) {
+		header( "Expires: 0" );
+		header( 'Cache-Control: must-revalidate' );
+	    header( 'Pragma: public' );
+		header( "Content-Type: " . $episode_asset->file_type()->mime_type );
+		header( "Content-Description: File Transfer" );
+		header( "Content-Disposition: attachment; filename=" . $media_file->get_download_file_name() );
+		header( "Content-Transfer-Encoding: binary" );
+
+		if ( $media_file->size > 0 )
+			header( 'Content-Length: ' . $media_file->size );
+		
+		if (strtoupper($_SERVER['REQUEST_METHOD']) !== "HEAD") {
+			ob_clean();
+			flush();
+			while ( @ob_end_flush() ); // flush and end all output buffers
+			readfile( $media_file->get_file_url($intent->source, $intent->context) );
+		}
+	} else {
+		$location = $media_file->add_ptm_parameters(
+			$media_file->get_file_url(),
+			array(
+				'source'  => $intent->source,
+				'context' => $intent->context
+			)
+		);
+
+		header("HTTP/1.1 301 Moved Permanently");
+		header("Location: " . $location);
+	}
 }
-add_action( 'init', '\Podlove\handle_media_file_download' );
+add_action( 'wp', '\Podlove\handle_media_file_download' );
+
+// join into episode table in WordPress searches so we can access episode fields
+add_filter('posts_join', function($join, $query) {
+	global $wpdb;
+
+	if (!$query->is_search())
+		return $join;
+
+	$episodesTable = \Podlove\Model\Episode::table_name();
+	$join .= " LEFT JOIN $episodesTable ON $wpdb->posts.ID = $episodesTable.post_id ";
+
+	return $join;
+}, 10, 2);
+
+// add route for file downloads
+add_action( 'init', function () {
+    add_rewrite_rule(
+        '^podlove/file/([0-9]+)/s/([^/]+)/c/([^/]+)/.+/?$',
+        'index.php?download_media_file=$matches[1]&ptm_source=$matches[2]&ptm_context=$matches[3]',
+        'top'
+    );
+    add_rewrite_rule(
+        '^podlove/file/([0-9]+)/s/([^/]+)/.+/?$',
+        'index.php?download_media_file=$matches[1]&ptm_source=$matches[2]',
+        'top'
+    );
+    add_rewrite_rule(
+        '^podlove/file/([0-9]+)/.+/?$',
+        'index.php?download_media_file=$matches[1]',
+        'top'
+    );
+}, 10 );
+
+add_filter( 'query_vars', function ( $query_vars ){
+    $query_vars[] = 'download_media_file';
+    $query_vars[] = 'ptm_source';
+    $query_vars[] = 'ptm_context';
+    return $query_vars;
+}, 10, 1 );
 
 // register ajax actions
 new \Podlove\AJAX\Ajax;

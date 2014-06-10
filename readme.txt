@@ -85,20 +85,60 @@ Find the setting Flattr > Advanced Settings > Flattrable content > Post Types an
 
 == Changelog ==
 
+= 1.10.11 =
+
+**Tracking**
+
+* For increased compatibility (we are looking at you, iTunes), new file URLs without parameters are used when analytics are active.
+* Add `&ptm_file=<episode-slug>.<file-extension>` parameter to the end of Parameter-URLs, so tools like wget generate a filename with a correct extension by default.
+* Feed URLs now support a `&tracking=no` parameter, which dynamically disables tracking parameters in feed enclosures. This is introduced for debugging purposes and is only mentioned here for the sake of completeness.
+* Fix PHP glitch that caused tracking to go into "Tracking URL Parameters" mode even when it was disabled
+
+**ADN Module**
+
+* Fix issue that could lead to repostings
+* Fix tags description
+* Messages longer than 256 characters will be shortened now and "…" will be appended
+
+**Other**
+
+* Fix: reenable "force download" option
+
+= 1.10.10 =
+
+We discovered incompatibilities between our tracking implementation and some clients. To avoid further trouble, we are *deactivating tracking* until we solve the issue. The option is still available, we just switch it off automatically with this release and it isn't on by default any more.
+
+If you're of the curious type, feel free to activate it and tell us any issues you run into. Thanks!
+
+= 1.10.9 =
+
+* Fix: When tracking was active but no geo-location database available, downloads would fail. This exception is handled correctly now. You can check the status of tracking and the geo-location database in `Expert Settings > Tracking`
+
 = 1.10.8 =
 
 * Feature: Services in templates can be filtered by their type. That way, you can, for example, iterate over all Twitter accounts via `podcast.services({type: "twitter"})`. The previous "type" parameter (for choosing between "social", "donation" and "all") has been renamed to "category". All default templates have been adjusted accordingly _but if you were using this API in a custom template, you need to change it_.
 * Feature: `podcast.contributors` in templates are sorted by name now. You can change the order by writing `podcast.contributors({order: "DESC"})`. When using grouping, each group will be sorted separately.
-* Feature: `podcast.contributors({scope: "global"})` is limited to contributors with at least on contribution in a published episode. To list contributors ignoring this limitation, use `podcast.contributors({scope: "global", active: false})`
+* Feature: `podcast.contributors({scope: "global-active"})` is limited to contributors with at least one contribution in a published episode. To list contributors ignoring this limitation, use `podcast.contributors({scope: "global"})`. "global-active" is the new default.
 * Feature: Allow manual posting of ADN announcements
 * Feature: Add contributor support to ADN announcements
 * Feature: We are beginning to implement download intent tracking and statistics. As a first step, we are now tracking download intents. A following release will contain an analytics section where you can examine the statistics.
-* Enhancement: remove encryption for "protected feed" password
+* Feature: The feed `<link>` can be configured in `Expert Settings > Website` now. It still defaults to the home page. Other options include the episode archive and any WordPress page.
+* Enhancement: remove encryption for "protected feed" password to prevent autofill browser features to destroy contents
 * Enhancement: default WordPress search now covers episode subtitle, summary and chapters
+* Enhancement: add Vimeo, Gittip and about.me to services
+* Enhancement: The expert setting "Display episodes on front page together with blog posts" changed to "Include episode posts on the front page and in the blog feed". So if you set it, episodes will additionally appear in `/feed`. However, only in the form of a post. You will not find enclosures, iTunes metadata etc. in `/feed` items.
+* Enhancement: sort chapters imported from Auphonic by time
+* Enhancement: Changes to feed list: redirect URL is shown and added screen options to hide columns
+* Enhancement: Added Publisher version as an attribute to the export file. If a file is imported with a version different from the current Publisher, a warning is displayed.
 * Fix: enable group and role selection in contributor shortcodes
 * Fix: failing delayed ADN broadcast
 * Fix: stop sending ADN announcements for old episodes
 * Fix: refresh of Auphonic presets keeps current preset
+* Fix: `contributor.episodes` does not return duplicate episodes any more
+* Fix: Jabber URL scheme is now prefixed with `jabber:`
+* Fix: Display podcast subtitle in feed description (it was the blog description before)
+* Fix: Hide contributors missing a URI from feeds
+* Fix: Escaping issue when saving podcast description settings
 
 = 1.10.7 =
 
