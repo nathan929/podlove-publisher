@@ -784,13 +784,13 @@ function handle_media_file_download() {
 	}
 
 	if (isset($_REQUEST['ptm_source'])) {
-		$ptm_source = isset($_REQUEST['ptm_source']);
+		$ptm_source = $_REQUEST['ptm_source'];
 	} else {
 		$ptm_source = get_query_var("ptm_source");
 	}
 
 	if (isset($_REQUEST['ptm_context'])) {
-		$ptm_context = isset($_REQUEST['ptm_context']);
+		$ptm_context = $_REQUEST['ptm_context'];
 	} else {
 		$ptm_context = get_query_var("ptm_context");
 	}

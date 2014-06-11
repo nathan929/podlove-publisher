@@ -85,6 +85,10 @@ Find the setting Flattr > Advanced Settings > Flattrable content > Post Types an
 
 == Changelog ==
 
+= 1.10.12 =
+
+* Fix: issue that caused some tracking sources and contexts to be wrong
+
 = 1.10.11 =
 
 **Tracking**
