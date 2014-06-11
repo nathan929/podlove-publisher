@@ -60,26 +60,39 @@ class Analytics {
 		$episode = Model\Episode::find_one_by_id((int) $_REQUEST['episode']);
 		$post    = get_post( $episode->post_id );
 
-		$days = 28;
-
-		$start = "$days days ago";
-		$end   = "now";
-
-		$startDay = date('Y-m-d', strtotime($start));
-		$endDay   = date('Y-m-d', strtotime($end));
-
 		$chartData = array(
 			'days'  => Model\DownloadIntent::daily_episode_totals($episode->id, $post->post_date, "now"),
 			'title' => $post->post_title
 		);
 
 		$releaseTime = strtotime($post->post_date);
-		// $top_episode_ids = Model\DownloadIntent::top_episode_ids("1000 days ago", "now", 1);
-		// $top_episode_id  = $top_episode_ids[0];
 
-		// $topEpisodeData = array(
-		// 	'days' => Model\DownloadIntent::daily_episode_totals($top_episode_id, $start, $end),
-		// );
+		$topEpisodeIds = Model\DownloadIntent::top_episode_ids("1000 years ago", "now", 1);
+		$topEpisodeId  = $topEpisodeIds[0];
+		$topEpisode    = Model\Episode::find_one_by_id($topEpisodeId);
+		$topPost       = get_post( $topEpisode->post_id );
+
+		$topEpisodeData = array(
+			'days' => Model\DownloadIntent::daily_episode_totals($topEpisodeId, $topPost->post_date, "now"),
+			'title' => sprintf('Top Episode (%s)', get_the_title($topEpisode->post_id))
+		);
+
+		$mainEpisodeReleaseDate = new \DateTime($post->post_date);
+		$topEpisodeReleaseDate  = new \DateTime($topPost->post_date);
+		$differenceInDays = $mainEpisodeReleaseDate->diff($topEpisodeReleaseDate)->format('%a');
+
+		$now = new \DateTime("now");
+
+		$shiftedDays = array();
+		foreach ($topEpisodeData['days'] as $date => $downloads) {
+			$d = new \DateTime($date);
+			$d->add(new \DateInterval('P' . $differenceInDays . 'D'));
+
+			if ($d->diff($now)->format('%R') == "+") {
+				$shiftedDays[$d->format('Y-m-d')] = $downloads;
+			}
+		}
+		$topEpisodeData['days'] = $shiftedDays;
 
 		?>
 		<h2>
@@ -105,9 +118,32 @@ class Analytics {
 						fillOpacity: 0.05
 					}
 				},
+
+				legend: { enabled: true },
 				
 				rangeSelector: {
-					selected: 1
+					selected: 1,
+					buttons: [
+						{
+							type: 'week',
+							count: 1,
+							text: '1w'
+						},
+						{
+							type: 'week',
+							count: 4,
+							text: '4w'
+						},
+						{
+							type: 'year',
+							count: 1,
+							text: '1y'
+						},
+						{
+							type: 'all',
+							text: 'All'
+						},
+					]
 				},
 
 				yAxis: {
@@ -125,69 +161,26 @@ class Analytics {
 				},
 				
 				series: [{
-					// dataGrouping: {
-					// 	forced: true,
-					// 	approximation: "sum",
-					// 	units: [['week', [1]]]
-					// },
 					type: 'column',
-				    name: 'Downloads',
+				    name: '<?php echo $chartData['title'] ?>',
 				    data: [<?php
 				    	echo implode(',', array_map(function($theday, $downloads) {
 							list($y, $m, $d) = explode("-", $theday);
 							return "[Date.UTC($y," . ($m-1) . ",$d)," . ((int) $downloads) . "]";
 						}, array_keys($chartData['days']), array_values($chartData['days'])));
 						?>]
+				},{
+					type: 'column',
+				    name: '<?php echo $topEpisodeData['title'] ?>',
+				    data: [<?php
+				    	echo implode(',', array_map(function($theday, $downloads) {
+							list($y, $m, $d) = explode("-", $theday);
+							return "[Date.UTC($y," . ($m-1) . ",$d)," . ((int) $downloads) . "]";
+						}, array_keys($topEpisodeData['days']), array_values($topEpisodeData['days'])));
+						?>]
 				}]
 
 			});
-
-			/**
-			$('#total_chart').highcharts({
-			    chart: {
-			        type: "column"
-			    },
-			    title: {
-			        text: 'Downloads: 28 days'
-			    },
-			    subtitle: {
-			        text: "<?php echo addslashes($chartData['title']) ?>",
-			    },
-			    xAxis: {
-			        // type: 'datetime',
-			        title: {
-			        	text: 'Days since Release'
-			        }
-			    },
-			    yAxis: {
-			        title: {
-			            text: 'Downloads'
-			        }
-			    },
-			    legend: {
-			        enabled: false
-			    },
-			    navigator: {
-			    	enabled: true
-			    },
-			    rangeSelector: {
-			    	selected: 1
-			    },
-			    <?php 
-			    $pointInterval = 24 * 3600 * 1000;
-			    $pointStart    = strtotime($startDay) * 1000;
-			    ?>
-			    series: [{
-			        name: "<?php echo addslashes($chartData['title']) ?>",
-			        // pointInterval: <?php echo $pointInterval ?>,
-			        // pointStart: <?php echo $pointStart ?>,
-			        data: [
-			            <?php // echo implode(",", $chartData['days']) ?>
-			        ]
-			    }]
-			});
-			**/
-	
 		})(jQuery);
 		</script>
 
