@@ -129,6 +129,7 @@ function generate_downloads($command) {
 
 		$di->source = $source;
 		$di->context = $context;
+		$di->request_id = openssl_digest($di->accessed_at . openssl_random_pseudo_bytes(16), 'sha256'); // just some random string
 		$di->save();
 	}
 }
