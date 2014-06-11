@@ -46,12 +46,11 @@ class DownloadIntent extends Base {
 				theday
 		";
 
-		return $wpdb->get_results(
-			$wpdb->prepare($sql, $episode_id),
-			ARRAY_A
+		$result = $wpdb->get_results(
+			$wpdb->prepare($sql, $episode_id)
 		);
 
-		// return self::days_data_from_query_result($result, $start, $end);;
+		return self::days_data_from_query_result($result, $start, $end);;
 	}
 
 	public static function daily_totals($start, $end = "now", $exclude_episode_ids = array()) {
@@ -82,9 +81,7 @@ class DownloadIntent extends Base {
 				theday
 		";
 
-		$result = $wpdb->get_results(
-			$wpdb->prepare($sql)
-		);
+		$result = $wpdb->get_results($sql);
 
 		return self::days_data_from_query_result($result, $start, $end);
 	}
@@ -181,7 +178,7 @@ class DownloadIntent extends Base {
 	 */
 	private static function sql_condition_from_time_strings($start = null, $end = null, $tableAlias = 'di') {
 
-		$strToMysqlDate = function($s) { return date('Y-m-d', strtotime($s)); };
+		$strToMysqlDate = function($s) { return date('Y-m-d H:i:s', strtotime($s)); };
 
 		if ($start && $end) {
 			$timerange = "{$tableAlias}.accessed_at BETWEEN '{$strToMysqlDate($start)}' AND '{$strToMysqlDate($end)}'";

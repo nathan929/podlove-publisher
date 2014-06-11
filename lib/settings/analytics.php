@@ -308,8 +308,7 @@ class Analytics {
 			        text: 'Top 3 episodes compared to the rest'
 			    },
 			    xAxis: {
-			        type: 'datetime',
-			        //minRange: 14 * 24 * 3600000 // fourteen days
+			        type: 'datetime'
 			    },
 			    yAxis: {
 			        title: {
@@ -327,35 +326,30 @@ class Analytics {
 			    <?php 
 			    $pointInterval = 24 * 3600 * 1000;
 			    $pointStart    = strtotime($startDay) * 1000;
+			    $dataFormat    = function($data) {
+			    	return implode(",", $data);
+			    };
 			    ?>
 			    series: [{
 			        name: "<?php echo addslashes($top_episode_data[0]['title']) ?>",
 			        pointInterval: <?php echo $pointInterval ?>,
 			        pointStart: <?php echo $pointStart ?>,
-			        data: [
-			            <?php echo implode(",", $top_episode_data[0]['days']) ?>
-			        ]
+			        data: [ <?php echo $dataFormat($top_episode_data[0]['days']); ?> ]
 			    },{
 			        name: "<?php echo addslashes($top_episode_data[1]['title']) ?>",
 			        pointInterval: <?php echo $pointInterval ?>,
 			        pointStart: <?php echo $pointStart ?>,
-			        data: [
-			            <?php echo implode(",", $top_episode_data[1]['days']) ?>
-			        ]
+			        data: [ <?php echo $dataFormat($top_episode_data[1]['days']); ?> ]
 			    },{
 			        name: "<?php echo addslashes($top_episode_data[2]['title']) ?>",
 			        pointInterval: <?php echo $pointInterval ?>,
 			        pointStart: <?php echo $pointStart ?>,
-			        data: [
-			            <?php echo implode(",", $top_episode_data[2]['days']) ?>
-			        ]
+			        data: [ <?php echo $dataFormat($top_episode_data[2]['days']); ?> ]
 			    },{
 			        name: "<?php echo addslashes($other_episode_data['title']) ?>",
 			        pointInterval: <?php echo $pointInterval ?>,
 			        pointStart: <?php echo $pointStart ?>,
-			        data: [
-			            <?php echo implode(",", $other_episode_data['days']) ?>
-			        ]
+			        data: [ <?php echo $dataFormat($other_episode_data['days']); ?> ]
 			    }]
 			});
 
