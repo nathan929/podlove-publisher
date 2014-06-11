@@ -133,10 +133,10 @@ class Analytics {
 					type: 'column',
 				    name: 'Downloads',
 				    data: [<?php
-				    	echo implode(',', array_map(function($item) {
-							list($y, $m, $d) = explode("-", $item['theday']);
-							return "[Date.UTC($y," . ($m-1) . ",$d)," . ((int) $item['downloads']) . "]";
-						}, $chartData['days']));
+				    	echo implode(',', array_map(function($theday, $downloads) {
+							list($y, $m, $d) = explode("-", $theday);
+							return "[Date.UTC($y," . ($m-1) . ",$d)," . ((int) $downloads) . "]";
+						}, array_keys($chartData['days']), array_values($chartData['days'])));
 						?>]
 				}]
 
