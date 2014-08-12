@@ -61,7 +61,8 @@ var PODLOVE = PODLOVE || {};
 	 			success: function(result) {
 	 				args.checkbox.data({
 	 					id: result.file_id,
-	 					size: result.file_size
+	 					size: result.file_size,
+	 					'file-url': result.file_url
 	 				});
 	 				o.update_preview_row(args.container_row);
 	 			}
@@ -85,17 +86,9 @@ var PODLOVE = PODLOVE || {};
 	 					container_row: container
 	 				});
 	 			} else {
-	 				var url                 = $checkbox.data('template');
+	 				var url                 = $checkbox.data('file-url');
 	 				var media_file_base_uri = PODLOVE.trailingslashit($container.find('input[name="show-media-file-base-uri"]').val());
-	 				var episode_slug        = $container.find('input[name*="slug"]').val();
-	 				var format_extension    = $checkbox.data('extension');
 	 				var size                = $checkbox.data('size');
-	 				var suffix              = $checkbox.data('suffix');
-
-	 				url = url.replace( '%media_file_base_url%', media_file_base_uri );
-	 				url = url.replace( '%episode_slug%', episode_slug );
-	 				url = url.replace( '%suffix%', suffix );
-	 				url = url.replace( '%format_extension%', format_extension );
 
 	 				var readable_size = human_readable_size( size );
 	 				var filename      = url.replace(media_file_base_uri, "");
@@ -188,6 +181,7 @@ var PODLOVE = PODLOVE || {};
  				success: function(result) {
  					ajax_requests.pop();
  					container.find("input").data('size', result.file_size);
+ 					container.find("input").data('file-url', result.file_url);
  					o.update_preview_row(container);
  				}
  			});
