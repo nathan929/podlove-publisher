@@ -204,23 +204,23 @@ class Analytics {
 			<tbody>
 				<tr>
 					<td>Total Downloads</td>
-					<td><?php echo $downloads['total'] ?></td>
+					<td><?php echo number_format_i18n($downloads['total']) ?></td>
 				</tr>
 				<tr>
 					<td>28 Days</td>
-					<td><?php echo $downloads['month'] ?></td>
+					<td><?php echo number_format_i18n($downloads['month']) ?></td>
 				</tr>
 				<tr>
 					<td>7 Days</td>
-					<td><?php echo $downloads['week'] ?></td>
+					<td><?php echo number_format_i18n($downloads['week']) ?></td>
 				</tr>
 				<tr>
 					<td>Yesterday</td>
-					<td><?php echo $downloads['yesterday'] ?></td>
+					<td><?php echo number_format_i18n($downloads['yesterday']) ?></td>
 				</tr>
 				<tr>
 					<td>Today</td>
-					<td><?php echo $downloads['today'] ?></td>
+					<td><?php echo number_format_i18n($downloads['today']) ?></td>
 				</tr>
 				<tr>
 					<td>Release Date</td>
@@ -229,18 +229,18 @@ class Analytics {
 				<tr>
 					<td>Peak Downloads/Day</td>
 					<td><?php echo sprintf(
-						"%d (%s)",
-						$peak['downloads'],
+						"%s (%s)",
+						number_format_i18n($peak['downloads']),
 						mysql2date(get_option('date_format'), $peak['theday'])
 					) ?></td>
 				</tr>
 				<tr>
 					<td>Average Downloads/Day</td>
-					<td><?php echo $daysSinceRelease ? round($downloads['total'] / $daysSinceRelease, 1) : '—' ?></td>
+					<td><?php echo $daysSinceRelease ? number_format_i18n($downloads['total'] / $daysSinceRelease, 1) : '—' ?></td>
 				</tr>
 				<tr>
 					<td>Days since Release</td>
-					<td><?php echo $daysSinceRelease ?></td>
+					<td><?php echo number_format_i18n($daysSinceRelease) ?></td>
 				</tr>
 			</tbody>
 		</table>

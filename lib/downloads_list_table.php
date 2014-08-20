@@ -24,23 +24,23 @@ class Downloads_List_Table extends \Podlove\List_Table {
 	}
 
 	public function column_downloads( $episode ) {
-		return $episode['downloads'] ? $episode['downloads'] : "–";
+		return $episode['downloads'] ? number_format_i18n($episode['downloads']) : "–";
 	}
 
 	public function column_downloadsMonth( $episode ) {
-		return $episode['downloadsMonth'] ? $episode['downloadsMonth'] : "–";
+		return $episode['downloadsMonth'] ? number_format_i18n($episode['downloadsMonth']) : "–";
 	}
 
 	public function column_downloadsWeek( $episode ) {
-		return $episode['downloadsWeek'] ? $episode['downloadsWeek'] : "–";
+		return $episode['downloadsWeek'] ? number_format_i18n($episode['downloadsWeek']) : "–";
 	}
 
 	public function column_downloadsYesterday( $episode ) {
-		return $episode['downloadsYesterday'] ? $episode['downloadsYesterday'] : "–";
+		return $episode['downloadsYesterday'] ? number_format_i18n($episode['downloadsYesterday']) : "–";
 	}
 
 	public function column_downloadsToday( $episode ) {
-		return $episode['downloadsToday'] ? $episode['downloadsToday'] : "–";
+		return $episode['downloadsToday'] ? number_format_i18n($episode['downloadsToday']) : "–";
 	}
 
 	public function get_columns(){
