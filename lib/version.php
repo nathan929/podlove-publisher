@@ -40,25 +40,70 @@
 namespace Podlove;
 use \Podlove\Model;
 
-define( __NAMESPACE__ . '\DATABASE_VERSION', 76 );
+define( __NAMESPACE__ . '\DATABASE_VERSION', 81 );
 
-add_action( 'init', '\Podlove\run_database_migrations' );
+add_action( 'admin_init', '\Podlove\maybe_run_database_migrations' );
+add_action( 'admin_init', '\Podlove\run_database_migrations', 5 );
 
-function run_database_migrations() {
-	
-	$database_version = get_option( 'podlove_database_version' );
+function maybe_run_database_migrations() {
+
+	$database_version = get_option('podlove_database_version');
 
 	if ( $database_version === false ) {
 		// plugin has just been installed
 		update_option( 'podlove_database_version', DATABASE_VERSION );
 	} elseif ( $database_version < DATABASE_VERSION ) {
-		// run one or multiple migrations
-		for ( $i = $database_version+1; $i <= DATABASE_VERSION; $i++ ) { 
-			\Podlove\run_migrations_for_version( $i );
-			update_option( 'podlove_database_version', $i );
+		wp_redirect( admin_url( 'index.php?podlove_page=podlove_upgrade&_wp_http_referer=' . urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
+		exit;
+	}
+}
+
+function run_database_migrations() {
+	global $wpdb;
+	
+	if (!isset($_REQUEST['podlove_page']) || $_REQUEST['podlove_page'] != 'podlove_upgrade')
+		return;
+
+	$database_version = get_option('podlove_database_version');
+
+	if ($database_version >= DATABASE_VERSION)
+		return;
+
+	if (is_multisite()) {
+		set_time_limit(0); // may take a while, depending on network size
+		$current_blog = $wpdb->blogid;
+		$blogids = $wpdb->get_col( "SELECT blog_id FROM " . $wpdb->blogs );
+		foreach ($blogids as $blog_id) {
+			switch_to_blog($blog_id);
+			if (is_plugin_active(basename(\Podlove\PLUGIN_DIR) . '/' . \Podlove\PLUGIN_FILE_NAME)) {
+				migrate_for_current_blog();
+			}
 		}
+		switch_to_blog($current_blog);
+	} else {
+		migrate_for_current_blog();
 	}
 
+	if (isset($_REQUEST['_wp_http_referer']) && $_REQUEST['_wp_http_referer']) {
+		wp_redirect($_REQUEST['_wp_http_referer']);
+		exit;
+	}
+}
+
+function migrate_for_current_blog() {
+	$database_version = get_option('podlove_database_version');
+
+	for ($i = $database_version+1; $i <= DATABASE_VERSION; $i++) { 
+		\Podlove\run_migrations_for_version($i);
+		update_option('podlove_database_version', $i);
+	}
+
+	// flush rewrite rules after migrations
+	set_transient( 'podlove_needs_to_flush_rewrite_rules', true );
+
+	// purge cache after migrations
+	$cache = \Podlove\Cache\TemplateCache::get_instance();
+	$cache->setup_purge();
 }
 
 /**
@@ -848,6 +893,56 @@ function run_migrations_for_version( $version ) {
 		break;
 		case 76:
 			set_transient( 'podlove_needs_to_flush_rewrite_rules', true );
+		break;
+		case 77:
+			// delete empty user agents
+			$userAgentTable      = Model\UserAgent::table_name();
+			$downloadIntentTable = Model\DownloadIntent::table_name();
+
+			$sql = "SELECT
+				di.id
+			FROM
+				$downloadIntentTable di
+				JOIN $userAgentTable ua ON ua.id = di.user_agent_id
+			WHERE
+				ua.user_agent IS NULL";
+			$ids = $wpdb->get_col($sql);
+
+			if (is_array($ids) && count($ids)) {
+				$sql = "UPDATE $downloadIntentTable SET user_agent_id = NULL WHERE id IN (" . implode(",", $ids) . ")";
+				$wpdb->query($sql);
+
+				$sql = "DELETE FROM $userAgentTable WHERE user_agent IS NULL";
+				$wpdb->query($sql);
+			}
+		break;
+		case 78:
+			if (\Podlove\Modules\Base::is_active('social')) {
+				$c = new \Podlove\Modules\Social\Model\Service;
+				$c->title = 'Auphonic Credits';
+				$c->category = 'donation';
+				$c->type = 'auphonic credits';
+				$c->description = 'Auphonic Account';
+				$c->logo = 'auphonic-128.png';
+				$c->url_scheme = 'https://auphonic.com/donate_credits?user=%account-placeholder%';
+				$c->save();
+			}
+		break;
+		case 79:
+			set_transient( 'podlove_needs_to_flush_rewrite_rules', true );
+			$cache = \Podlove\Cache\TemplateCache::get_instance();
+			$cache->setup_purge();
+		break;
+		case 80:
+			$sql = sprintf(
+				'ALTER TABLE `%s` ADD COLUMN `httprange` VARCHAR(255)',
+				\Podlove\Model\DownloadIntent::table_name()
+			);
+			$wpdb->query( $sql );
+		break;
+		case 81:
+			// remove all caches with old namespace
+			$wpdb->query("DELETE FROM $wpdb->options WHERE option_name LIKE \"_transient_podlove_cache%\"");
 		break;
 	}
 

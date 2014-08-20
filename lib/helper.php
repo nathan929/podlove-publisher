@@ -57,7 +57,6 @@ function get_setting( $namespace, $name ) {
 			'episode_archive' => 'on',
 			'episode_archive_slug' => '/podcast/',
 			'url_template' => '%media_file_base_url%%episode_slug%%suffix%.%format_extension%',
-			'force_download' => 'on',
 			'ssl_verify_peer' => 'on',
 			'landing_page' => 'homepage'
 		),
@@ -85,7 +84,7 @@ function get_landing_page_url() {
 
 	switch ($landing_page) {
 		case 'homepage':
-			return bloginfo_rss('url');
+			return get_bloginfo_rss('url');
 			break;
 		case 'archive':
 			if ( 'on' == \Podlove\get_setting( 'website', 'episode_archive' ) ) {
@@ -107,7 +106,7 @@ function get_landing_page_url() {
 	}
 
 	// always default to home page
-	return bloginfo_rss('url');
+	return get_bloginfo_rss('url');
 }
 
 function get_webplayer_setting( $name ) {
@@ -123,15 +122,14 @@ function get_webplayer_setting( $name ) {
 	return $settings[ $name ];
 }
 
-function slugify( $text ) {
+function slugify($slug) {
+	$slug = trim($slug);
+	// replace everything but unreserved characters (RFC 3986 section 2.3) and slashes by a hyphen
+	$slug = preg_replace('~[^\\pL\d_\.\~/]~u', '-', $slug);
+	$slug = rawurlencode($slug);
+	$slug = str_replace("%2F", "/", $slug);
 
-	// replace everything but unreserved characters (RFC 3986 section 2.3) by a hyphen
-	$text = preg_replace( '~[^\\pL\d_\.\~]~u', '-', $text );
-
-	// transliterate
-	$text = iconv( 'utf-8', 'us-ascii//TRANSLIT', $text );
-
-	return empty( $text ) ? 'n-a' : $text;
+	return empty($slug) ? 'n-a' : $slug;
 }
 
 function require_code_mirror() {
@@ -748,7 +746,7 @@ function getFlattrScript() {
 		     var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
 		     s.type = 'text/javascript';
 		     s.async = true;
-		    s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+		    s.src = 'https://api.flattr.com/js/0.6/load.js?mode=auto';
 		    t.parentNode.insertBefore(s, t);
 			 })();
 		/* ]]> */</script>\n";

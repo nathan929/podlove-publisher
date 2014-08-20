@@ -56,6 +56,16 @@ class Social extends \Podlove\Modules\Base {
 
 		add_shortcode( 'podlove-podcast-social-media-list', array( $this, 'podlove_podcast_social_media_list') );
 		add_shortcode( 'podlove-podcast-donations-list', array( $this, 'podlove_podcast_donations_list') );
+
+		add_filter('podlove_cache_tainting_classes', array($this, 'cache_tainting_classes'));
+	}
+
+	public function cache_tainting_classes($classes) {
+		return array_merge($classes, array(
+			Service::name(),
+			ShowService::name(),
+			ContributorService::name()
+		));
 	}
 
 	public function was_activated( $module_name ) {
@@ -399,6 +409,14 @@ class Social extends \Podlove\Modules\Base {
 					'description'	=> 'Gittip Account',
 					'logo'			=> 'gittip-128.png',
 					'url_scheme'	=> 'https://www.gittip.com/%account-placeholder%'
+				),
+			array(
+					'title' 		=> 'Auphonic Credits',
+					'name'	 		=> 'auphonic credits',
+					'category'		=> 'donation',
+					'description'	=> 'Auphonic Account',
+					'logo'			=> 'auphonic-128.png',
+					'url_scheme'	=> 'https://auphonic.com/donate_credits?user=%account-placeholder%'
 				)
 		);
 
@@ -924,15 +942,15 @@ class Social extends \Podlove\Modules\Base {
 	}
 	
 	public function expandExportFile(\SimpleXMLElement $xml) {
-		\Podlove\Modules\ImportExport\Exporter::exportTable($xml, 'services', 'service', '\Podlove\Modules\Social\Model\Service');
-		\Podlove\Modules\ImportExport\Exporter::exportTable($xml, 'contributorServices', 'contributorService', '\Podlove\Modules\Social\Model\ContributorService');
-		\Podlove\Modules\ImportExport\Exporter::exportTable($xml, 'showServices', 'showService', '\Podlove\Modules\Social\Model\ShowService');
+		\Podlove\Modules\ImportExport\Export\PodcastExporter::exportTable($xml, 'services', 'service', '\Podlove\Modules\Social\Model\Service');
+		\Podlove\Modules\ImportExport\Export\PodcastExporter::exportTable($xml, 'contributorServices', 'contributorService', '\Podlove\Modules\Social\Model\ContributorService');
+		\Podlove\Modules\ImportExport\Export\PodcastExporter::exportTable($xml, 'showServices', 'showService', '\Podlove\Modules\Social\Model\ShowService');
 	}
 
 	public function expandImport($xml) {
-		\Podlove\Modules\ImportExport\Importer::importTable($xml, 'service', '\Podlove\Modules\Social\Model\Service');
-		\Podlove\Modules\ImportExport\Importer::importTable($xml, 'contributorService', '\Podlove\Modules\Social\Model\ContributorService');
-		\Podlove\Modules\ImportExport\Importer::importTable($xml, 'showService', '\Podlove\Modules\Social\Model\ShowService');
+		\Podlove\Modules\ImportExport\Import\PodcastImporter::importTable($xml, 'service', '\Podlove\Modules\Social\Model\Service');
+		\Podlove\Modules\ImportExport\Import\PodcastImporter::importTable($xml, 'contributorService', '\Podlove\Modules\Social\Model\ContributorService');
+		\Podlove\Modules\ImportExport\Import\PodcastImporter::importTable($xml, 'showService', '\Podlove\Modules\Social\Model\ShowService');
 	}
 	
 	/**
@@ -1002,6 +1020,10 @@ class Social extends \Podlove\Modules\Base {
 	}
 
 	public function adn_contributor_filter() {
+
+		if (!is_admin())
+			return;
+
 		$adn = \Podlove\Modules\AppDotNet\App_Dot_Net::instance();
 
 		$roles = \Podlove\Modules\Contributors\Model\ContributorRole::all();
