@@ -81,29 +81,6 @@ class Downloads_List_Table extends \Podlove\List_Table {
 		$sortable = $this->get_sortable_columns();
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 
-		$valid_order_keys = array(
-			'post_date',
-			'downloads',
-			'downloadsMonth',
-			'downloadsWeek',
-			'downloadsYesterday',
-			'downloadsToday'
-		);
-
-		// look for order options
-		if ( isset($_GET['orderby']) && in_array($_GET['orderby'], $valid_order_keys) ) {
-			$orderby = $_GET['orderby'];
-		} else {
-			$orderby = 'post_date';
-		}
-
-		// look how to sort
-		if( isset($_GET['order'])  ) {
-			$order = strtoupper($_GET['order']) == 'ASC' ? SORT_ASC : SORT_DESC;
-		} else{
-			$order = SORT_DESC;
-		}
-
 		$data = \Podlove\cache_for('podlove_analytics_downloads_table', function() {
 			global $wpdb;
 
@@ -132,6 +109,9 @@ class Downloads_List_Table extends \Podlove\List_Table {
 				";
 			};
 
+			// TODO: find optimization options
+			// for example: how much faster is it if, instead of joining DownloadIntent,
+			// I join into a table with stuff already grouped by day?
 			$sql = "
 				SELECT
 					e.id,
@@ -155,6 +135,29 @@ class Downloads_List_Table extends \Podlove\List_Table {
 
 			return $wpdb->get_results($sql, ARRAY_A);
 		}, HOUR_IN_SECONDS);
+
+		$valid_order_keys = array(
+			'post_date',
+			'downloads',
+			'downloadsMonth',
+			'downloadsWeek',
+			'downloadsYesterday',
+			'downloadsToday'
+		);
+
+		// look for order options
+		if ( isset($_GET['orderby']) && in_array($_GET['orderby'], $valid_order_keys) ) {
+			$orderby = $_GET['orderby'];
+		} else {
+			$orderby = 'post_date';
+		}
+
+		// look how to sort
+		if( isset($_GET['order'])  ) {
+			$order = strtoupper($_GET['order']) == 'ASC' ? SORT_ASC : SORT_DESC;
+		} else{
+			$order = SORT_DESC;
+		}
 
 		array_multisort(
 			\array_column($data, $orderby), $order,
