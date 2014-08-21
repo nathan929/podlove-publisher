@@ -24,23 +24,27 @@ class Downloads_List_Table extends \Podlove\List_Table {
 	}
 
 	public function column_downloads( $episode ) {
-		return $episode['downloads'] ? number_format_i18n($episode['downloads']) : "–";
+		return self::get_number_or_dash($episode['downloads']);
 	}
 
 	public function column_downloadsMonth( $episode ) {
-		return $episode['downloadsMonth'] ? number_format_i18n($episode['downloadsMonth']) : "–";
+		return self::get_number_or_dash($episode['downloadsMonth']);
 	}
 
 	public function column_downloadsWeek( $episode ) {
-		return $episode['downloadsWeek'] ? number_format_i18n($episode['downloadsWeek']) : "–";
+		return self::get_number_or_dash($episode['downloadsWeek']);
 	}
 
 	public function column_downloadsYesterday( $episode ) {
-		return $episode['downloadsYesterday'] ? number_format_i18n($episode['downloadsYesterday']) : "–";
+		return self::get_number_or_dash($episode['downloadsYesterday']);
 	}
 
 	public function column_downloadsToday( $episode ) {
-		return $episode['downloadsToday'] ? number_format_i18n($episode['downloadsToday']) : "–";
+		return self::get_number_or_dash($episode['downloadsToday']);
+	}
+
+	public static function get_number_or_dash($value) {
+		return is_numeric($value) && $value ? number_format_i18n($value) : "–";
 	}
 
 	public function get_columns(){
@@ -77,76 +81,85 @@ class Downloads_List_Table extends \Podlove\List_Table {
 		$sortable = $this->get_sortable_columns();
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 
-		$orderby_map = array(
-			'episode'            => 'p.post_date',
-			'downloads'          => 'downloads',
-			'downloadsMonth'     => 'downloadsMonth',
-			'downloadsWeek'      => 'downloadsWeek',
-			'downloadsYesterday' => 'downloadsYesterday',
-			'downloadsToday'     => 'downloadsToday'
+		$valid_order_keys = array(
+			'post_date',
+			'downloads',
+			'downloadsMonth',
+			'downloadsWeek',
+			'downloadsYesterday',
+			'downloadsToday'
 		);
 
 		// look for order options
-		if( isset($_GET['orderby']) && isset($orderby_map[$_GET['orderby']])  ) {
-			$orderby = 'ORDER BY ' . $orderby_map[$_GET['orderby']];
-		} else{
-			$orderby = 'ORDER BY p.post_date';
+		if ( isset($_GET['orderby']) && in_array($_GET['orderby'], $valid_order_keys) ) {
+			$orderby = $_GET['orderby'];
+		} else {
+			$orderby = 'post_date';
 		}
 
 		// look how to sort
 		if( isset($_GET['order'])  ) {
-			$order = strtoupper($_GET['order']) == 'ASC' ? 'ASC' : 'DESC';
+			$order = strtoupper($_GET['order']) == 'ASC' ? SORT_ASC : SORT_DESC;
 		} else{
-			$order = 'DESC';
+			$order = SORT_DESC;
 		}
-		
-		// retrieve data
-		$subSQL = function($start = null, $end = null) {
 
-			$strToMysqlDate = function($s) { return date('Y-m-d', strtotime($s)); };
+		$data = \Podlove\cache_for('podlove_analytics_downloads_table', function() {
+			global $wpdb;
 
-			if ($start && $end) {
-				$timerange = " AND di2.accessed_at BETWEEN '{$strToMysqlDate($start)}' AND '{$strToMysqlDate($end)}'";
-			} elseif ($start) {
-				$timerange = " AND DATE(di2.accessed_at) = '{$strToMysqlDate($start)}'";
-			} else {
-				$timerange = "";
-			}
+			// retrieve data
+			$subSQL = function($start = null, $end = null) {
 
-			return "
+				$strToMysqlDate = function($s) { return date('Y-m-d', strtotime($s)); };
+
+				if ($start && $end) {
+					$timerange = " AND di2.accessed_at BETWEEN '{$strToMysqlDate($start)}' AND '{$strToMysqlDate($end)}'";
+				} elseif ($start) {
+					$timerange = " AND DATE(di2.accessed_at) = '{$strToMysqlDate($start)}'";
+				} else {
+					$timerange = "";
+				}
+
+				return "
+					SELECT
+						COUNT(di2.id) downloads
+					FROM
+						" . Model\MediaFile::table_name() . " mf2
+						LEFT JOIN " . Model\DownloadIntent::table_name() . " di2 ON di2.media_file_id = mf2.id
+					WHERE
+						mf2.episode_id = e.id
+						$timerange
+				";
+			};
+
+			$sql = "
 				SELECT
-					COUNT(di2.id) downloads
+					e.id,
+					p.post_title title,
+					p.post_date post_date,
+					COUNT(di.id) downloads,
+					(" . $subSQL('28 days ago', 'now') . ") downloadsMonth,
+					(" . $subSQL('7 days ago', 'now') . ") downloadsWeek,
+					(" . $subSQL('1 day ago') . ") downloadsYesterday,
+					(" . $subSQL('now') . ") downloadsToday
 				FROM
-					" . Model\MediaFile::table_name() . " mf2
-					LEFT JOIN " . Model\DownloadIntent::table_name() . " di2 ON di2.media_file_id = mf2.id
+					" . Model\Episode::table_name() . " e
+					JOIN " . $wpdb->posts . " p ON e.post_id = p.ID
+					JOIN " . Model\MediaFile::table_name() . " mf ON e.id = mf.episode_id
+					LEFT JOIN " . Model\DownloadIntent::table_name() . " di ON di.media_file_id = mf.id
 				WHERE
-					mf2.episode_id = e.id
-					$timerange
+					p.post_status IN ('publish', 'private')
+				GROUP BY
+					e.id
 			";
-		};
 
-		$sql = "
-			SELECT
-				e.id,
-				p.post_title title,
-				COUNT(di.id) downloads,
-				(" . $subSQL('28 days ago', 'now') . ") downloadsMonth,
-				(" . $subSQL('7 days ago', 'now') . ") downloadsWeek,
-				(" . $subSQL('1 day ago') . ") downloadsYesterday,
-				(" . $subSQL('now') . ") downloadsToday
-			FROM
-				" . Model\Episode::table_name() . " e
-				JOIN " . $wpdb->posts . " p ON e.post_id = p.ID
-				JOIN " . Model\MediaFile::table_name() . " mf ON e.id = mf.episode_id
-				LEFT JOIN " . Model\DownloadIntent::table_name() . " di ON di.media_file_id = mf.id
-			WHERE
-				p.post_status IN ('publish', 'private')
-			GROUP BY
-				e.id
-			$orderby $order
-		";
+			return $wpdb->get_results($sql, ARRAY_A);
+		}, HOUR_IN_SECONDS);
 
-		$data = $wpdb->get_results($sql, ARRAY_A);
+		array_multisort(
+			\array_column($data, $orderby), $order,
+			$data
+		);
 
 		// get current page
 		$current_page = $this->get_pagenum();
