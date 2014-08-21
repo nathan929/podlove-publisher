@@ -7,7 +7,8 @@
         "twig/extensions": "1.1.*@dev",
         "pear/math_biginteger": "dev-tags/RELEASE_1_0_2",
         "leth/ip-address": "1.0.*@dev",
-        "geoip2/geoip2": "dev-master"
+        "geoip2/geoip2": "dev-master",
+        "rhumsaa/array_column": "~1.1"
     },
     "require-dev": {
         "pear/pear_exception": "1.0.*@dev",
