@@ -194,8 +194,6 @@ class DownloadIntent extends Base {
 			$timerange = "1 = 1";
 		}
 
-		file_put_contents('/tmp/php.log', print_r("\n" . $timerange."\n", true), FILE_APPEND | LOCK_EX);
-
 		return $timerange;
 	}
 
