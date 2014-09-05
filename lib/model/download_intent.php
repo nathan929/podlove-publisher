@@ -12,6 +12,7 @@ class DownloadIntent extends Base {
 			FROM
 				" . DownloadIntent::table_name() . " di
 				JOIN " . MediaFile::table_name() . " mf ON mf.id = di.media_file_id
+				JOIN " . Episode::table_name() . " e ON e.id = mf.episode_id
 			WHERE
 				" . self::sql_condition_from_time_strings($start, $end) . "
 			GROUP BY
@@ -36,6 +37,7 @@ class DownloadIntent extends Base {
 			FROM
 				" . DownloadIntent::table_name() . " di
 				JOIN " . MediaFile::table_name() . " mf ON mf.id = di.media_file_id
+				JOIN " . Episode::table_name() . " e ON e.id = mf.episode_id
 			WHERE
 				episode_id = %d
 				AND
@@ -72,6 +74,7 @@ class DownloadIntent extends Base {
 			FROM
 				" . DownloadIntent::table_name() . " di
 				JOIN " . MediaFile::table_name() . " mf ON mf.id = di.media_file_id
+				JOIN " . Episode::table_name() . " e ON e.id = mf.episode_id
 			WHERE
 				$exclude_sql
 				" . self::sql_condition_from_time_strings($start, $end) . "
