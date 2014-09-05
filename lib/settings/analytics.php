@@ -190,13 +190,15 @@ class Analytics {
 
 		<?php 
 		$releaseDate = new \DateTime($post->post_date);
-		$diff        = $releaseDate->diff(new \DateTime());
+		$releaseDate->setTime(0, 0, 0);
+
+		$diff = $releaseDate->diff(new \DateTime());
 		$daysSinceRelease = $diff->days;
 
 		$downloads = array(
 			'total'     => Model\DownloadIntent::total_by_episode_id($episode->id, "1000 years ago", "now"),
-			'month'     => Model\DownloadIntent::total_by_episode_id($episode->id, "28 days ago", "now"),
-			'week'      => Model\DownloadIntent::total_by_episode_id($episode->id, "7 days ago", "now"),
+			'month'     => Model\DownloadIntent::total_by_episode_id($episode->id, "28 days ago", "yesterday"),
+			'week'      => Model\DownloadIntent::total_by_episode_id($episode->id, "7 days ago", "yesterday"),
 			'yesterday' => Model\DownloadIntent::total_by_episode_id($episode->id, "1 day ago"),
 			'today'     => Model\DownloadIntent::total_by_episode_id($episode->id, "now")
 		);
@@ -211,11 +213,11 @@ class Analytics {
 					<td><?php echo number_format_i18n($downloads['total']) ?></td>
 				</tr>
 				<tr>
-					<td>28 Days</td>
+					<td>28 Days*</td>
 					<td><?php echo number_format_i18n($downloads['month']) ?></td>
 				</tr>
 				<tr>
-					<td>7 Days</td>
+					<td>7 Days*</td>
 					<td><?php echo number_format_i18n($downloads['week']) ?></td>
 				</tr>
 				<tr>
@@ -240,11 +242,16 @@ class Analytics {
 				</tr>
 				<tr>
 					<td>Average Downloads/Day</td>
-					<td><?php echo $daysSinceRelease ? number_format_i18n($downloads['total'] / $daysSinceRelease, 1) : '—' ?></td>
+					<td><?php echo number_format_i18n($downloads['total'] / ($daysSinceRelease+1), 1) ?></td>
 				</tr>
 				<tr>
 					<td>Days since Release</td>
 					<td><?php echo number_format_i18n($daysSinceRelease) ?></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<em>* excluding today</em>
+					</td>
 				</tr>
 			</tbody>
 		</table>

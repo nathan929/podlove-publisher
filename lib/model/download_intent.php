@@ -181,15 +181,20 @@ class DownloadIntent extends Base {
 	 */
 	private static function sql_condition_from_time_strings($start = null, $end = null, $tableAlias = 'di') {
 
-		$strToMysqlDate = function($s) { return date('Y-m-d H:i:s', strtotime($s)); };
+		$strToMysqlDateTime = function($s) { return date('Y-m-d H:i:s', strtotime($s)); };
+		$strToMysqlDate     = function($s) { return date('Y-m-d', strtotime($s)); };
+		$startOfDay         = function($s) { return date('Y-m-d H:i:s', strtotime("midnight", strtotime($s))); };
+		$endOfDay           = function($s) use ($startOfDay) { return date('Y-m-d H:i:s', strtotime("tomorrow", strtotime($startOfDay($s))) - 1); };
 
 		if ($start && $end) {
-			$timerange = "{$tableAlias}.accessed_at BETWEEN '{$strToMysqlDate($start)}' AND '{$strToMysqlDate($end)}'";
+			$timerange = "{$tableAlias}.accessed_at BETWEEN '{$strToMysqlDateTime($startOfDay($start))}' AND '{$strToMysqlDateTime($endOfDay($end))}'";
 		} elseif ($start) {
 			$timerange = "DATE({$tableAlias}.accessed_at) = '{$strToMysqlDate($start)}'";
 		} else {
 			$timerange = "1 = 1";
 		}
+
+		file_put_contents('/tmp/php.log', print_r("\n" . $timerange."\n", true), FILE_APPEND | LOCK_EX);
 
 		return $timerange;
 	}
