@@ -65,7 +65,7 @@ class Analytics {
 			'title' => $post->post_title
 		);
 
-		$releaseTime = strtotime($post->post_date);
+		$releaseDayTime = strtotime("midnight", strtotime($post->post_date));
 
 		$topEpisodeIds = Model\DownloadIntent::top_episode_ids("1000 years ago", "now", 1);
 		$topEpisodeId  = $topEpisodeIds[0];
@@ -78,7 +78,11 @@ class Analytics {
 		);
 
 		$mainEpisodeReleaseDate = new \DateTime($post->post_date);
+		$mainEpisodeReleaseDate->setTime(0, 0, 0); // normalize to midnight
+
 		$topEpisodeReleaseDate  = new \DateTime($topPost->post_date);
+		$topEpisodeReleaseDate->setTime(0, 0, 0);  // normalize to midnight
+
 		$differenceInDays = $mainEpisodeReleaseDate->diff($topEpisodeReleaseDate)->format('%a');
 
 		$now = new \DateTime("now");
@@ -155,7 +159,7 @@ class Analytics {
 					labels: {
 						formatter: function() {
 							// days since release
-							return Math.floor((this.value - <?php echo $releaseTime*1000 ?>) / 86400000);
+							return Math.floor((this.value - <?php echo $releaseDayTime*1000 ?>) / 86400000);
 						}
 					}
 				},
