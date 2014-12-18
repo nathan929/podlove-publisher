@@ -213,6 +213,14 @@ class Social extends \Podlove\Modules\Base {
 					'url_scheme'	=> '%account-placeholder%'
 				),
 			array(
+			 		'title' 		=> 'Miiverse',
+			 		'name'	 		=> 'miiverse',
+			 		'category'		=> 'social',
+					'description'	=> 'Miiverse Account',
+					'logo'			=> 'miiverse-128.png',
+					'url_scheme'	=> 'https://miiverse.nintendo.net/users/%account-placeholder%'
+				),
+			array(
 					'title' 		=> 'Pinboard',
 					'name'	 		=> 'pinboard',
 					'category'		=> 'social',
