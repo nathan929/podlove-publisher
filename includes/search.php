@@ -25,7 +25,14 @@ add_filter('posts_search', function($search, $query) {
 	$searchand = '';
 	$n = !empty($query->query_vars['exact']) ? '' : '%';
 	foreach( (array) $query->query_vars['search_terms'] as $term ) {
-		$term = esc_sql( $wpdb->esc_like( $term ) );
+		
+		// @todo use only esc_like once we increase minimum WordPress to 4.0
+		if (method_exists($wpdb, 'esc_like')) {
+			$term = esc_sql( $wpdb->esc_like( $term ) );
+		} else {
+			$term = esc_sql( addcslashes( $term, '_%\\' ) );
+		}
+		
 		$search .= "
 			{$searchand}
 			(
